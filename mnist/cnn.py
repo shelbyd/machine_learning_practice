@@ -3,6 +3,11 @@ from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Conv2D, MaxPooling2D, Flatten, ZeroPadding2D
 
+if keras.backend.image_data_format() == 'channels_first':
+  input_shape = (1, x_train.shape[1], x_train.shape[2])
+else:
+  input_shape = (x_train.shape[1], x_train.shape[2], 1)
+
 try:
   classifier = keras.models.load_model('models/mnist/cnn.h5')
 except:
@@ -45,12 +50,6 @@ if __name__ == "__main__":
 
   y_train = keras.utils.to_categorical(y_train)
   y_test = keras.utils.to_categorical(y_test)
-
-  if keras.backend.image_data_format() == 'channels_first':
-    input_shape = (1, x_train.shape[1], x_train.shape[2])
-  else:
-    input_shape = (x_train.shape[1], x_train.shape[2], 1)
-
 
   classifier.summary()
 

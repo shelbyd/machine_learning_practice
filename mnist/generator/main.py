@@ -36,21 +36,13 @@ image_test = normalize_image(image_test)
 real_image_labels = keras.utils.to_categorical(real_image_labels)
 labels_test = keras.utils.to_categorical(labels_test)
 
-DISCRIMINATOR_TRAINING_SIZE = 4096
-GENERATOR_TRAINING_SIZE = 4096
-BATCH_SIZE = 128
+all_noise = np.random.uniform(size=(real_images.shape[0], generator.noise_input.shape[1]))
 
-discriminator_on_generator = discriminator.discriminator(generator.image)
-classifier_on_generator = classifier(generator.image)
-full_generator = Model([generator.digit_input, generator.noise_input],
-                       [discriminator_on_generator, classifier_on_generator])
-full_generator.compile(
-    loss=[
-      keras.losses.binary_crossentropy,
-      keras.losses.categorical_crossentropy,
-    ],
-    optimizer='rmsprop',
-)
+BATTLES_PER_EPOCH = 8
+
+DISCRIMINATOR_TRAINING_SIZE = 128
+GENERATOR_TRAINING_SIZE = 128
+BATCH_SIZE = 128
 
 def random_generator_input(size):
   digit = keras.utils.to_categorical(np.random.random_integers(9, size=(size, 1)), num_classes=10)
@@ -68,19 +60,14 @@ def train_discriminator():
   images = np.concatenate((sampled_images, generated_images))
   labels = [1] * training_size + [0] * training_size
 
-  discriminator.trainable = True
-  discriminator.discriminator.fit(images, labels, batch_size=BATCH_SIZE)
-  discriminator.discriminator.save(discriminator.checkpoint_path)
+
+  return discriminator.discriminator.train_on_batch(images, labels)
 
 def train_generator():
   [digit, noise] = random_generator_input(GENERATOR_TRAINING_SIZE)
   discriminator_ones = np.ones((GENERATOR_TRAINING_SIZE, 1))
 
-  discriminator.trainable = False
-  full_generator.fit([digit, noise],
-                     [discriminator_ones, digit],
-                     batch_size=BATCH_SIZE)
-  generator.generator.save(generator.checkpoint_path)
+  return full_generator.train_on_batch([digit, noise], [discriminator_ones, digit])
 
 def generate_and_save_each(directory):
   digit = keras.utils.to_categorical([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -105,9 +92,32 @@ def generate_and_save_each(directory):
 from datetime import datetime
 prefix = datetime.now().isoformat()
 
+generator.generator.trainable = False
+discriminator.trainable = True
+discriminator.discriminator.compile(loss='binary_crossentropy', optimizer='rmsprop')
+
+generator.generator.trainable = True
+discriminator.trainable = False
+discriminator_on_generator = discriminator.discriminator(generator.image)
+classifier_on_generator = classifier(generator.image)
+full_generator = Model([generator.digit_input, generator.noise_input],
+                       [discriminator_on_generator, classifier_on_generator])
+full_generator.compile(
+  loss=[
+    keras.losses.binary_crossentropy,
+    keras.losses.categorical_crossentropy,
+  ],
+  optimizer='rmsprop',
+)
+
 import sys
 for epoch in xrange(sys.maxint):
   generate_and_save_each("/tmp/mnist_images/latest")
-  train_discriminator()
-  train_generator()
-  generate_and_save_each("/tmp/mnist_images/%s/epoch_%d" % (prefix, epoch))
+
+  for _ in xrange(BATTLES_PER_EPOCH):
+    discriminator_loss = train_discriminator()
+    [_, generator_real_loss, categorical_loss] = train_generator()
+    print "discriminator: %f - realness: %f - categorical: %f" % (discriminator_loss, generator_real_loss, categorical_loss)
+
+  discriminator.discriminator.save(discriminator.checkpoint_path)
+  generator.generator.save(generator.checkpoint_path)

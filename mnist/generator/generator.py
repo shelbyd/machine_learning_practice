@@ -24,7 +24,7 @@ digit_x = Dropout(0.5)(digit_x)
 x = keras.layers.concatenate([digit_x, noise_input])
 x = Dense(256)(x)
 x = Activation('relu')(x)
-x = Dropout(0.5)(x)
+x = Dropout(0.2)(x)
 
 x = Dense(CHANNELS * INITIAL_HEIGHT * INITIAL_WIDTH)(x)
 x = Activation('relu')(x)

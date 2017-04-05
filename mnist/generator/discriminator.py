@@ -21,7 +21,6 @@ x = Activation('relu')(x)
 x = Conv2D(64, 2, strides=(2, 2), padding='same')(x)
 x = Activation('relu')(x)
 
-x = Dropout(0.2)(x)
 x = Flatten()(x)
 
 x = Dense(256)(x)

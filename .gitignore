@@ -1,1 +1,4 @@
 *.pyc
+
+# Trained models
+models

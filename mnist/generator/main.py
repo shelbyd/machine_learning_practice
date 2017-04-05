@@ -48,7 +48,9 @@ def random_generator_input(size):
 
   return [digit, noise]
 
-def train_discriminator():
+
+
+def with_discriminator_batch(f):
   training_size = BATCH_SIZE / 2
   generated_images = generator.generator.predict(
                          random_generator_input(training_size),
@@ -58,33 +60,43 @@ def train_discriminator():
   images = np.concatenate((sampled_images, generated_images))
   labels = [1] * training_size + [0] * training_size
 
-  return discriminator.discriminator.train_on_batch(images, labels)
+  return f(*(images, labels))
 
-def train_generator():
+def train_discriminator():
+  return with_discriminator_batch(discriminator.discriminator.train_on_batch)
+
+def test_discriminator():
+  return with_discriminator_batch(discriminator.discriminator.test_on_batch)
+
+
+
+def with_generator_batch(f):
   [digit, noise] = random_generator_input(BATCH_SIZE)
   discriminator_ones = np.ones((BATCH_SIZE, 1))
 
-  return full_generator.train_on_batch([digit, noise], [discriminator_ones, digit])
+  return f(*([digit, noise], [discriminator_ones, digit]))
+
+def train_generator():
+  return with_generator_batch(full_generator.train_on_batch)
+
+def test_generator():
+  return with_generator_batch(full_generator.test_on_batch)
+
+
 
 import math
 def do_training_battle():
-  def print_status():
-    print "discriminator: %f - realness: %f - categorical: %f" % (discriminator_loss, generator_real_loss, categorical_loss)
+  discriminator_loss = test_discriminator()
+  [_, generator_real_loss, categorical_loss] = test_generator()
 
-  discriminator_loss = train_discriminator()
-  [_, generator_real_loss, categorical_loss] = train_generator()
+  print "discriminator: %f - realness: %f - categorical: %f" % (discriminator_loss, generator_real_loss, categorical_loss)
 
-  print_status()
-
-  discriminator_runs = int(math.log(discriminator_loss / generator_real_loss))
-  generator_runs = int(math.log(generator_real_loss / discriminator_loss))
-
-  for _ in xrange(discriminator_runs):
+  if discriminator_loss > generator_real_loss:
     discriminator_loss = train_discriminator()
-    print_status()
-  for _ in xrange(generator_runs):
+  else:
     [_, generator_real_loss, categorical_loss] = train_generator()
-    print_status()
+
+
 
 def generate_and_save_each(directory):
   digit = keras.utils.to_categorical([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -105,6 +117,8 @@ def generate_and_save_each(directory):
 
     image.save("%s/target-%d_classified-%d.png" %
                (directory, target[index], classified[index]))
+
+
 
 from datetime import datetime
 prefix = datetime.now().isoformat()

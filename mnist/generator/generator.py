@@ -43,7 +43,7 @@ checkpoint_path = generate_checkpoint_path('models/mnist/generator/generator', g
 
 try:
   generator.load_weights(checkpoint_path)
-except:
+except IOError:
   pass
 
 generator.compile(loss='binary_crossentropy', optimizer='SGD')

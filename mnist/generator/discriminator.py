@@ -39,7 +39,7 @@ checkpoint_path = generate_checkpoint_path('models/mnist/generator/discriminator
 
 try:
   discriminator.load_weights(checkpoint_path)
-except:
+except IOError:
   pass
 
 discriminator.compile(loss='binary_crossentropy', optimizer='SGD')

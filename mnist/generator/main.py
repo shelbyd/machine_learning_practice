@@ -1,3 +1,4 @@
+import os
 import keras
 import numpy as np
 from keras.datasets import mnist
@@ -10,7 +11,7 @@ import generator
 
 from PIL import Image
 
-(real_images, labels_train), (image_test, labels_test) = mnist.load_data()
+(real_images, real_image_labels), (image_test, labels_test) = mnist.load_data()
 
 def normalize_image(image):
   items, height, width = image.shape
@@ -32,13 +33,11 @@ def denormalize_image(image):
 real_images = normalize_image(real_images)
 image_test = normalize_image(image_test)
 
-labels_train = keras.utils.to_categorical(labels_train)
+real_image_labels = keras.utils.to_categorical(real_image_labels)
 labels_test = keras.utils.to_categorical(labels_test)
 
 TRAINING_SIZE = 4096
-
 BATCH_SIZE = 128
-EPOCHS = 32
 
 discriminator_on_generator = discriminator.discriminator(generator.image)
 classifier_on_generator = classifier(generator.image)
@@ -53,8 +52,8 @@ full_generator.compile(
 )
 
 def random_generator_input(size):
+  digit = keras.utils.to_categorical(np.random.random_integers(9, size=(size, 1)), num_classes=10)
   noise = np.random.uniform(size=(size, generator.noise_input.shape[1]))
-  digit = keras.utils.to_categorical(np.random.random_integers(0, 9, (size, 1)))
 
   return [digit, noise]
 
@@ -82,9 +81,35 @@ def train_generator():
   discriminator.trainable = False
   full_generator.fit([digit, noise],
                      [discriminator_ones, digit],
-                     batch_size=BATCH_SIZE,
-                     callbacks=[keras.callbacks.ModelCheckpoint(generator.checkpoint_path)])
+                     batch_size=BATCH_SIZE)
+  generator.generator.save(generator.checkpoint_path)
 
-for epoch in range(EPOCHS):
+def generate_and_save_each(directory):
+  digit = keras.utils.to_categorical([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+  noise = np.random.uniform(size=(digit.shape[0], generator.noise_input.shape[1]))
+
+  generated_image = generator.generator.predict([digit, noise])
+  denormalized_image = denormalize_image(generated_image)
+  target = digit.argmax(0)
+  classified = classifier.predict(generated_image).argmax(0)
+
+  try:
+    os.makedirs(directory)
+  except:
+    pass
+
+  for index in range(generated_image.shape[0]):
+    image = Image.fromarray(denormalized_image[index])
+
+    image.save("%s/target-%d_classified-%d.png" %
+               (directory, target[index], classified[index]))
+
+from datetime import datetime
+prefix = datetime.now().isoformat()
+
+import sys
+for epoch in xrange(sys.maxint):
+  generate_and_save_each("/tmp/mnist_images/latest")
   train_discriminator()
   train_generator()
+  generate_and_save_each("/tmp/mnist_images/%s/epoch_%d" % (prefix, epoch))

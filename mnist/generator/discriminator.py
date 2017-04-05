@@ -12,20 +12,20 @@ else:
 image_input = Input(shape=input_shape)
 x = image_input
 
-x = Conv2D(64, (3, 3), padding='same')(x)
+x = Conv2D(64, 3, padding='same')(x)
 x = Activation('relu')(x)
 
-x = Conv2D(64, (2, 2), strides=(2, 2), padding='same')(x)
+x = Conv2D(64, 2, strides=(2, 2), padding='same')(x)
 x = Activation('relu')(x)
 
-x = Conv2D(64, (2, 2), strides=(2, 2), padding='same')(x)
+x = Conv2D(64, 2, strides=(2, 2), padding='same')(x)
 x = Activation('relu')(x)
 
 x = Dropout(0.2)(x)
 x = Flatten()(x)
 
 x = Dense(256)(x)
-x = Activation('relu')(x)
+x = keras.layers.advanced_activations.LeakyReLU(alpha=0.3)(x)
 x = Dropout(0.5)(x)
 
 x = Dense(1)(x)
@@ -41,5 +41,3 @@ try:
   discriminator.load_weights(checkpoint_path)
 except IOError:
   pass
-
-discriminator.compile(loss='binary_crossentropy', optimizer='rmsprop')

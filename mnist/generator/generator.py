@@ -13,24 +13,25 @@ INITIAL_WIDTH = 7
 INITIAL_HEIGHT = 7
 
 if keras.backend.image_data_format() == 'channels_first':
-  reshape = (CHANNELS, INITIAL_HEIGHT, INITIAL_WIDTH)
+  reshape = (1, INITIAL_HEIGHT, INITIAL_WIDTH)
 else:
-  reshape = (INITIAL_HEIGHT, INITIAL_WIDTH, CHANNELS)
+  reshape = (INITIAL_HEIGHT, INITIAL_WIDTH, 1)
 
-digit_x = Dense(512)(digit_input)
+digit_x = Dense(256)(digit_input)
 digit_x = Activation('relu')(digit_x)
 digit_x = Dropout(0.5)(digit_x)
 
 x = keras.layers.concatenate([digit_x, noise_input])
 x = Dense(256)(x)
 x = Activation('relu')(x)
-x = Dropout(0.25)(x)
+x = Dropout(0.5)(x)
 
-x = Dense(CHANNELS * INITIAL_HEIGHT * INITIAL_WIDTH)(x)
+x = Dense(INITIAL_HEIGHT * INITIAL_WIDTH)(x)
 x = Activation('relu')(x)
 x = Reshape(reshape)(x)
+x = Conv2D(CHANNELS, 2, padding='same')(x)
 x = UpSampling2D()(x)
-x = Conv2D(CHANNELS / 2, 4, padding='same')(x)
+x = Conv2D(CHANNELS, 3, padding='same')(x)
 x = Activation('relu')(x)
 x = UpSampling2D()(x)
 x = Conv2D(1, 2, padding='same')(x)

@@ -42,5 +42,4 @@ try:
 except IOError:
   pass
 
-_optimizer = keras.optimizers.SGD(lr=0.0005, momentum=0.9, nesterov=True)
-discriminator.compile(loss='binary_crossentropy', optimizer=_optimizer)
+discriminator.compile(loss='binary_crossentropy', optimizer='rmsprop')

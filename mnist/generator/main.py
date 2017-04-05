@@ -49,7 +49,7 @@ full_generator.compile(
       keras.losses.binary_crossentropy,
       keras.losses.categorical_crossentropy,
     ],
-    optimizer=keras.optimizers.SGD(lr=0.0005, momentum=0.9, nesterov=True),
+    optimizer='rmsprop',
 )
 
 def random_generator_input(size):

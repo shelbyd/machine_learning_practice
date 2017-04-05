@@ -69,11 +69,8 @@ def train_discriminator():
   labels = [1] * training_size + [0] * training_size
 
   discriminator.trainable = True
-  discriminator.discriminator.fit(
-      images,
-      labels,
-      batch_size=BATCH_SIZE,
-      callbacks=[keras.callbacks.ModelCheckpoint(discriminator.checkpoint_path)])
+  discriminator.discriminator.fit(images, labels, batch_size=BATCH_SIZE)
+  discriminator.discriminator.save(discriminator.checkpoint_path)
 
 def train_generator():
   [digit, noise] = random_generator_input(GENERATOR_TRAINING_SIZE)

@@ -36,7 +36,8 @@ image_test = normalize_image(image_test)
 real_image_labels = keras.utils.to_categorical(real_image_labels)
 labels_test = keras.utils.to_categorical(labels_test)
 
-TRAINING_SIZE = 4096
+DISCRIMINATOR_TRAINING_SIZE = 4096
+GENERATOR_TRAINING_SIZE = 4096
 BATCH_SIZE = 128
 
 discriminator_on_generator = discriminator.discriminator(generator.image)
@@ -48,7 +49,7 @@ full_generator.compile(
       keras.losses.binary_crossentropy,
       keras.losses.categorical_crossentropy,
     ],
-    optimizer='SGD',
+    optimizer=keras.optimizers.SGD(lr=0.0005, momentum=0.9, nesterov=True),
 )
 
 def random_generator_input(size):
@@ -58,7 +59,7 @@ def random_generator_input(size):
   return [digit, noise]
 
 def train_discriminator():
-  training_size = TRAINING_SIZE / 2
+  training_size = DISCRIMINATOR_TRAINING_SIZE / 2
   generated_images = generator.generator.predict(
                          random_generator_input(training_size),
                          batch_size=BATCH_SIZE)
@@ -75,8 +76,8 @@ def train_discriminator():
       callbacks=[keras.callbacks.ModelCheckpoint(discriminator.checkpoint_path)])
 
 def train_generator():
-  [digit, noise] = random_generator_input(TRAINING_SIZE)
-  discriminator_ones = np.ones((TRAINING_SIZE, 1))
+  [digit, noise] = random_generator_input(GENERATOR_TRAINING_SIZE)
+  discriminator_ones = np.ones((GENERATOR_TRAINING_SIZE, 1))
 
   discriminator.trainable = False
   full_generator.fit([digit, noise],

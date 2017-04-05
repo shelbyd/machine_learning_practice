@@ -46,5 +46,3 @@ try:
   generator.load_weights(checkpoint_path)
 except IOError:
   pass
-
-generator.compile(loss='binary_crossentropy', optimizer='SGD')

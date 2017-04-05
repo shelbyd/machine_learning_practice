@@ -38,6 +38,8 @@ labels_test = keras.utils.to_categorical(labels_test)
 
 all_noise = np.random.uniform(size=(real_images.shape[0], generator.noise_input.shape[1]))
 
+adam = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
+
 BATTLES_PER_EPOCH = 8
 
 BATCH_SIZE = 128
@@ -99,6 +101,7 @@ def do_training_battle():
 
 
 def generate_and_save_each(directory):
+  print "Saving to %s" % directory
   digit = keras.utils.to_categorical([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
   noise = np.random.uniform(size=(digit.shape[0], generator.noise_input.shape[1]))
 
@@ -125,7 +128,7 @@ prefix = datetime.now().isoformat()
 
 generator.generator.trainable = False
 discriminator.trainable = True
-discriminator.discriminator.compile(loss='binary_crossentropy', optimizer='rmsprop')
+discriminator.discriminator.compile(loss='binary_crossentropy', optimizer=adam)
 
 generator.generator.trainable = True
 discriminator.trainable = False
@@ -138,7 +141,7 @@ full_generator.compile(
     keras.losses.binary_crossentropy,
     keras.losses.categorical_crossentropy,
   ],
-  optimizer='rmsprop',
+  optimizer=adam,
 )
 
 import sys

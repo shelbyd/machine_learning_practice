@@ -25,7 +25,6 @@ x = Flatten()(x)
 
 x = Dense(256)(x)
 x = keras.layers.advanced_activations.LeakyReLU(alpha=0.3)(x)
-x = Dropout(0.5)(x)
 
 x = Dense(1)(x)
 x = Activation('sigmoid', name='discriminator_is_real')(x)

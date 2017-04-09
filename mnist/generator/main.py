@@ -4,6 +4,7 @@ import numpy as np
 from keras.datasets import mnist
 from keras.models import Model
 from keras.layers import Dense, Dropout, Activation, Conv2D, MaxPooling2D, Flatten, ZeroPadding2D
+from keras import backend as K
 
 import discriminator
 from classifier import classifier
@@ -11,7 +12,7 @@ import generator
 
 from PIL import Image
 
-(real_images, real_image_labels), (image_test, labels_test) = mnist.load_data()
+(real_images, _), _ = mnist.load_data()
 
 def normalize_image(image):
   items, height, width = image.shape
@@ -31,25 +32,13 @@ def denormalize_image(image):
   return image.reshape(items, height, width)
 
 real_images = normalize_image(real_images)
-image_test = normalize_image(image_test)
-
-real_image_labels = keras.utils.to_categorical(real_image_labels)
-labels_test = keras.utils.to_categorical(labels_test)
-
-all_noise = np.random.uniform(size=(real_images.shape[0], generator.noise_input.shape[1]))
-
-adam = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
 
 BATTLES_PER_EPOCH = 8
 
 BATCH_SIZE = 128
 
 def random_generator_input(size):
-  digit = keras.utils.to_categorical(np.random.random_integers(9, size=(size, 1)), num_classes=10)
-  noise = np.random.uniform(size=(size, generator.noise_input.shape[1]))
-
-  return [digit, noise]
-
+  return np.random.normal(size=(size, generator.noise_input.shape[1]))
 
 
 def with_discriminator_batch(f):
@@ -60,7 +49,7 @@ def with_discriminator_batch(f):
 
   sampled_images = real_images[np.random.randint(real_images.shape[0], size=training_size)]
   images = np.concatenate((sampled_images, generated_images))
-  labels = [1] * training_size + [0] * training_size
+  labels = [1] * sampled_images.shape[0] + [0] * generated_images.shape[0]
 
   return f(*(images, labels))
 
@@ -73,10 +62,10 @@ def test_discriminator():
 
 
 def with_generator_batch(f):
-  [digit, noise] = random_generator_input(BATCH_SIZE)
+  noise = random_generator_input(BATCH_SIZE)
   discriminator_ones = np.ones((BATCH_SIZE, 1))
 
-  return f(*([digit, noise], [discriminator_ones, digit]))
+  return f(*(noise, discriminator_ones))
 
 def train_generator():
   return with_generator_batch(full_generator.train_on_batch)
@@ -86,28 +75,31 @@ def test_generator():
 
 
 
-import math
-def do_training_battle():
-  discriminator_loss = test_discriminator()
-  [_, generator_real_loss, categorical_loss] = test_generator()
+def symmetric_training():
+  discriminator_loss = train_discriminator()
+  generator_real_loss = train_generator()
 
-  print "discriminator: %f - realness: %f - categorical: %f" % (discriminator_loss, generator_real_loss, categorical_loss)
+  print "discriminator: %f - realness: %f" % (discriminator_loss, generator_real_loss)
+
+def one_sided_training():
+  discriminator_loss = test_discriminator()
+  generator_real_loss = test_generator()
 
   if discriminator_loss > generator_real_loss:
     discriminator_loss = train_discriminator()
+    print "discriminator: %f - realness: %f - training: discriminator" % (discriminator_loss, generator_real_loss)
   else:
-    [_, generator_real_loss, categorical_loss] = train_generator()
+    generator_real_loss = train_generator()
+    print "discriminator: %f - realness: %f - training: generator" % (discriminator_loss, generator_real_loss)
 
 
 
 def generate_and_save_each(directory):
   print "Saving to %s" % directory
-  digit = keras.utils.to_categorical([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-  noise = np.random.uniform(size=(digit.shape[0], generator.noise_input.shape[1]))
+  noise = random_generator_input(10)
 
-  generated_image = generator.generator.predict([digit, noise])
+  generated_image = generator.generator.predict(noise)
   denormalized_image = denormalize_image(generated_image)
-  target = digit.argmax(0)
   classified = classifier.predict(generated_image).argmax(0)
 
   try:
@@ -118,38 +110,35 @@ def generate_and_save_each(directory):
   for index in range(generated_image.shape[0]):
     image = Image.fromarray(denormalized_image[index])
 
-    image.save("%s/target-%d_classified-%d.png" %
-               (directory, target[index], classified[index]))
+    image.save("%s/%d_classified-%d.png" %
+               (directory, index, classified[index]))
 
 
-
-from datetime import datetime
-prefix = datetime.now().isoformat()
 
 generator.generator.trainable = False
-discriminator.trainable = True
-discriminator.discriminator.compile(loss='binary_crossentropy', optimizer=adam)
+discriminator.discriminator.trainable = True
+discriminator.discriminator.compile(
+    loss='binary_crossentropy',
+    optimizer=keras.optimizers.Nadam(lr=0.0002))
 
 generator.generator.trainable = True
-discriminator.trainable = False
+discriminator.discriminator.trainable = False
 discriminator_on_generator = discriminator.discriminator(generator.image)
-classifier_on_generator = classifier(generator.image)
-full_generator = Model([generator.digit_input, generator.noise_input],
-                       [discriminator_on_generator, classifier_on_generator])
+full_generator = Model(generator.noise_input,
+                       discriminator_on_generator)
 full_generator.compile(
-  loss=[
-    keras.losses.binary_crossentropy,
-    keras.losses.categorical_crossentropy,
-  ],
-  optimizer=adam,
-)
+    loss='binary_crossentropy',
+    optimizer=keras.optimizers.Nadam(lr=0.0002))
+
+discriminator.discriminator.summary()
+generator.generator.summary()
 
 import sys
-for epoch in xrange(sys.maxint):
+while True:
   generate_and_save_each("/tmp/mnist_images/latest")
 
   for _ in xrange(BATTLES_PER_EPOCH):
-    do_training_battle()
+    one_sided_training()
 
   discriminator.discriminator.save(discriminator.checkpoint_path)
   generator.generator.save(generator.checkpoint_path)

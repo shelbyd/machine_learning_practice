@@ -33,9 +33,9 @@ def denormalize_image(image):
 
 real_images = normalize_image(real_images)
 
-BATTLES_PER_EPOCH = 8
+BATTLES_PER_EPOCH = 64
 
-BATCH_SIZE = 128
+BATCH_SIZE = 1024
 
 def random_generator_input(size):
   return np.random.normal(size=(size, generator.noise_input.shape[1]))
@@ -96,7 +96,7 @@ def one_sided_training():
 
 def generate_and_save_each(directory):
   print("Saving to %s" % directory)
-  noise = random_generator_input(10)
+  noise = random_generator_input(128)
 
   generated_image = generator.generator.predict(noise)
   denormalized_image = denormalize_image(generated_image)
@@ -110,8 +110,7 @@ def generate_and_save_each(directory):
   for index in range(generated_image.shape[0]):
     image = Image.fromarray(denormalized_image[index])
 
-    image.save("%s/%d_classified-%d.png" %
-               (directory, index, classified[index]))
+    image.save("%s/%03d.png" % (directory, index))
 
 
 
@@ -135,7 +134,7 @@ generator.generator.summary()
 
 import sys
 while True:
-  generate_and_save_each("/tmp/mnist_images/latest")
+  generate_and_save_each("C://Windows/Temp/mnist_images/latest")
 
   for _ in range(BATTLES_PER_EPOCH):
     symmetric_training()

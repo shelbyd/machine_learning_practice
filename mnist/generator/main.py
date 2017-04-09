@@ -86,11 +86,11 @@ def one_sided_training():
   generator_real_loss = test_generator()
 
   if discriminator_loss > generator_real_loss:
-    discriminator_loss = train_discriminator()
     print "discriminator: %f - realness: %f - training: discriminator" % (discriminator_loss, generator_real_loss)
+    train_discriminator()
   else:
-    generator_real_loss = train_generator()
     print "discriminator: %f - realness: %f - training: generator" % (discriminator_loss, generator_real_loss)
+    train_generator()
 
 
 
@@ -119,7 +119,7 @@ generator.generator.trainable = False
 discriminator.discriminator.trainable = True
 discriminator.discriminator.compile(
     loss='binary_crossentropy',
-    optimizer=keras.optimizers.Nadam(lr=0.0002))
+    optimizer=keras.optimizers.Nadam(lr=0.0002, beta_1=0.5))
 
 generator.generator.trainable = True
 discriminator.discriminator.trainable = False
@@ -128,7 +128,7 @@ full_generator = Model(generator.noise_input,
                        discriminator_on_generator)
 full_generator.compile(
     loss='binary_crossentropy',
-    optimizer=keras.optimizers.Nadam(lr=0.0002))
+    optimizer=keras.optimizers.Nadam(lr=0.0002, beta_1=0.5))
 
 discriminator.discriminator.summary()
 generator.generator.summary()
@@ -138,7 +138,7 @@ while True:
   generate_and_save_each("/tmp/mnist_images/latest")
 
   for _ in xrange(BATTLES_PER_EPOCH):
-    one_sided_training()
+    symmetric_training()
 
   discriminator.discriminator.save(discriminator.checkpoint_path)
   generator.generator.save(generator.checkpoint_path)

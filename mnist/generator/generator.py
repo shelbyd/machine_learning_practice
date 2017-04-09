@@ -1,7 +1,7 @@
 import numpy as np
 import keras
 from keras.models import Model
-from keras.layers import Dense, Dropout, Activation, Conv2D, ZeroPadding2D, Input, Reshape, UpSampling2D, BatchNormalization
+from keras.layers import Dense, Dropout, Activation, Conv2D, ZeroPadding2D, Input, Reshape, UpSampling2D, BatchNormalization, LeakyReLU
 
 from checkpointer import generate_checkpoint_path
 
@@ -18,19 +18,19 @@ else:
 
 x = noise_input
 x = Dense(128)(x)
-x = Activation('relu')(x)
+x = LeakyReLU()(x)
 
 x = Dense(CHANNELS * INITIAL_HEIGHT * INITIAL_WIDTH)(x)
-x = Activation('relu')(x)
+x = LeakyReLU()(x)
 x = Reshape(reshape)(x)
 
 x = UpSampling2D()(x)
 x = Conv2D(CHANNELS / 2, 5, padding='same')(x)
-x = Activation('relu')(x)
+x = LeakyReLU()(x)
 
 x = UpSampling2D()(x)
 x = Conv2D(CHANNELS / 4, 5, padding='same')(x)
-x = Activation('relu')(x)
+x = LeakyReLU()(x)
 
 x = Conv2D(1, 3, padding='same')(x)
 x = Activation('sigmoid')(x)

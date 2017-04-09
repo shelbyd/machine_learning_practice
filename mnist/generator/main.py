@@ -42,7 +42,7 @@ def random_generator_input(size):
 
 
 def with_discriminator_batch(f):
-  training_size = BATCH_SIZE / 2
+  training_size = int(BATCH_SIZE / 2)
   generated_images = generator.generator.predict(
                          random_generator_input(training_size),
                          batch_size=BATCH_SIZE)
@@ -79,28 +79,28 @@ def symmetric_training():
   discriminator_loss = train_discriminator()
   generator_real_loss = train_generator()
 
-  print "discriminator: %f - realness: %f" % (discriminator_loss, generator_real_loss)
+  print("discriminator: %f - realness: %f" % (discriminator_loss, generator_real_loss))
 
 def one_sided_training():
   discriminator_loss = test_discriminator()
   generator_real_loss = test_generator()
 
   if discriminator_loss > generator_real_loss:
-    print "discriminator: %f - realness: %f - training: discriminator" % (discriminator_loss, generator_real_loss)
+    print("discriminator: %f - realness: %f - training: discriminator" % (discriminator_loss, generator_real_loss))
     train_discriminator()
   else:
-    print "discriminator: %f - realness: %f - training: generator" % (discriminator_loss, generator_real_loss)
+    print("discriminator: %f - realness: %f - training: generator" % (discriminator_loss, generator_real_loss))
     train_generator()
 
 
 
 def generate_and_save_each(directory):
-  print "Saving to %s" % directory
+  print("Saving to %s" % directory)
   noise = random_generator_input(10)
 
   generated_image = generator.generator.predict(noise)
   denormalized_image = denormalize_image(generated_image)
-  classified = classifier.predict(generated_image).argmax(0)
+  classified = classifier.predict(generated_image).argmax(0).astype(np.uint8)
 
   try:
     os.makedirs(directory)
@@ -137,7 +137,7 @@ import sys
 while True:
   generate_and_save_each("/tmp/mnist_images/latest")
 
-  for _ in xrange(BATTLES_PER_EPOCH):
+  for _ in range(BATTLES_PER_EPOCH):
     symmetric_training()
 
   discriminator.discriminator.save(discriminator.checkpoint_path)

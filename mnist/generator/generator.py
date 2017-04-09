@@ -25,11 +25,11 @@ x = LeakyReLU()(x)
 x = Reshape(reshape)(x)
 
 x = UpSampling2D()(x)
-x = Conv2D(CHANNELS / 2, 5, padding='same')(x)
+x = Conv2D(int(CHANNELS / 2), 5, padding='same')(x)
 x = LeakyReLU()(x)
 
 x = UpSampling2D()(x)
-x = Conv2D(CHANNELS / 4, 5, padding='same')(x)
+x = Conv2D(int(CHANNELS / 4), 5, padding='same')(x)
 x = LeakyReLU()(x)
 
 x = Conv2D(1, 3, padding='same')(x)

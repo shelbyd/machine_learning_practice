@@ -3,6 +3,22 @@ from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Conv2D, MaxPooling2D, Flatten, ZeroPadding2D
 
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+def normalize_image(image):
+  items, height, width = image.shape
+  if keras.backend.image_data_format() == 'channels_first':
+    image = image.reshape(items, 1, height, width)
+  else:
+    image = image.reshape(items, height, width, 1)
+  return image.astype('float32') / 255
+
+x_train = normalize_image(x_train)
+x_test = normalize_image(x_test)
+
+y_train = keras.utils.to_categorical(y_train)
+y_test = keras.utils.to_categorical(y_test)
+
 if keras.backend.image_data_format() == 'channels_first':
   input_shape = (1, x_train.shape[1], x_train.shape[2])
 else:
@@ -35,22 +51,6 @@ except:
   classifier.add(Activation('softmax'))
 
 if __name__ == "__main__":
-  (x_train, y_train), (x_test, y_test) = mnist.load_data()
-
-  def normalize_image(image):
-    items, height, width = image.shape
-    if keras.backend.image_data_format() == 'channels_first':
-      image = image.reshape(items, 1, height, width)
-    else:
-      image = image.reshape(items, height, width, 1)
-    return image.astype('float32') / 255
-
-  x_train = normalize_image(x_train)
-  x_test = normalize_image(x_test)
-
-  y_train = keras.utils.to_categorical(y_train)
-  y_test = keras.utils.to_categorical(y_test)
-
   classifier.summary()
 
   classifier.compile(loss='categorical_crossentropy',
